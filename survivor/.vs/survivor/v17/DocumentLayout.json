@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Git-Hub\\survivor\\survivor\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F2B27162-7121-4F2B-8A4D-DB4DC38F9523}|survivor\\survivor.vcxproj|E:\\Git-Hub\\survivor\\survivor\\survivor\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{F2B27162-7121-4F2B-8A4D-DB4DC38F9523}|survivor\\survivor.vcxproj|solutionrelative:survivor\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "main.cpp",
+              "DocumentMoniker": "E:\\Git-Hub\\survivor\\survivor\\survivor\\main.cpp",
+              "RelativeDocumentMoniker": "survivor\\main.cpp",
+              "ToolTip": "E:\\Git-Hub\\survivor\\survivor\\survivor\\main.cpp",
+              "RelativeToolTip": "survivor\\main.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-02-26T06:44:03.476Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

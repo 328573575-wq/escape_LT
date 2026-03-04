@@ -1,16 +1,34 @@
-#include <string>
+ï»¿#include <string>
 #include <vector>
 #include <graphics.h>
 #include <time.h>
+const int BUTTON_WIDTH = 192;
+const int BUTTON_HEIGHT = 75;
+#pragma comment(lib, "Winmm.lib")
+#pragma comment(lib, "MSIMG32.LIB")
+bool is_game_start = false;
+enum class menu_choice {
+	START = 0,
+	END,
+	RESTART,
+	HOLD
+};
+menu_choice m_choice = menu_choice::HOLD;
+bool running = true;
+const double PI = 3.14159;
+//å­å¼¹ä¸ªæ•°è®¾ç½®
+int bullet_set_num = 1;
+//æ•Œäººç”Ÿæˆå‘¨æœŸ
+double init_enemy_interval = 1200;
 inline void putimage_alpha(int x, int y, IMAGE* img);
 
-//¶¯»­Àà ¼ÓÔØ»­Ãæ£¬´òÓ¡»­Ãæ
+//åŠ¨ç”»ç±» åŠ è½½ç”»é¢ï¼Œæ‰“å°ç”»é¢
 class Animation {
 public:
 	Animation(int num, LPCTSTR path, DWORD interval,int code)
 		:interval_ms(interval), current_time(0), last_time(GetTickCount()), anim_idx(0)
 	{
-		//ÁÙÊ±´¢´æÍ¼Æ¬ÎÄ¼şÂ·¾¶
+		//ä¸´æ—¶å‚¨å­˜å›¾ç‰‡æ–‡ä»¶è·¯å¾„
 		TCHAR path_file[256];
 		for (int i = 0; i < num; i++) {
 			_stprintf_s(path_file,256, path, code, i);
@@ -42,16 +60,15 @@ private:
 	DWORD interval_ms;
 	std::vector<IMAGE*> anim_list;
 };
-
-//Íæ¼ÒÀà
+//ç©å®¶ç±»
 class player {
 public:
 	player(int n)
 		: code(n)
 	{
-		//¼ÓÔØÒõÓ°
+		//åŠ è½½é˜´å½±
 		loadimage(&shadow_player, _T("img\\shadow_player.png"));
-		//¼ÓÔØÍæ¼Ò¶¯»­
+		//åŠ è½½ç©å®¶åŠ¨ç”»
 		img_player_left = new Animation(5, _T("img\\player%d_left%d.png"), 83,code);
 		img_player_right = new Animation(5, _T("img\\player%d_right%d.png"), 83,code);
 		img_player_stand = new Animation(2, _T("img\\player%d_stand%d.png"), 83,code);
@@ -61,14 +78,23 @@ public:
 		delete img_player_right;
 		delete img_player_stand;
 	}
-	//»ñÈ¡Íæ¼Ò×ø±êµÄ½Ó¿Ú
+	//è·å–ç©å®¶åæ ‡çš„æ¥å£
 	int get_x() const {
 		return player_pos.x;
 	}
 	int get_y() const {
 		return player_pos.y;
 	}
-	//´òÓ¡Íæ¼Ò¶¯»­º¯Êı
+	const POINT& get_pos() const {
+		return player_pos;
+	}
+	const int get_w() const{
+		return PLAYER_W;
+	}
+	const int get_h() const{
+		return PLAYER_H;
+	}
+	//æ‰“å°ç©å®¶åŠ¨ç”»å‡½æ•°
 	void player_move_anim() {
 		int pos_shadow_x = player_pos.x + (PLAYER_W / 2 - SHADOW_W / 2) - 10;
 		int pos_shadow_y = player_pos.y + PLAYER_H - 25;
@@ -84,9 +110,9 @@ public:
 			img_player_stand->play(player_pos.x, player_pos.y);
 		}
 	}
-	//Íæ¼ÒÒÆ¶¯ÏûÏ¢´¦Àíº¯Êı
+	//ç©å®¶ç§»åŠ¨æ¶ˆæ¯å¤„ç†å‡½æ•°
 	void process_msg(ExMessage& move_msg) {
-		//playerÒÆ¶¯ÏûÏ¢´¦Àí
+		//playerç§»åŠ¨æ¶ˆæ¯å¤„ç†
 		while (peekmessage(&move_msg)) {
 			if (move_msg.message == WM_KEYDOWN) {
 				switch (move_msg.vkcode) {
@@ -122,9 +148,9 @@ public:
 			}
 		}
 	}
-	//Íæ¼ÒÒÆ¶¯´¦Àíº¯Êı
+	//ç©å®¶ç§»åŠ¨å¤„ç†å‡½æ•°
 	void process_move() {
-		//ÀûÓÃÏòÁ¿£¬¹éÒ»»¯´¦Àí£¬Ê¹µÃÈÎÒâ·½ÏòÇ°½øµÄ³¤¶ÈÒ»ÖÂ
+		//åˆ©ç”¨å‘é‡ï¼Œå½’ä¸€åŒ–å¤„ç†ï¼Œä½¿å¾—ä»»æ„æ–¹å‘å‰è¿›çš„é•¿åº¦ä¸€è‡´
 		double dx = 0.0, dy = 0.0;
 		if (is_up == true) dy = -1.0;
 		if (is_down == true) dy = 1.0;
@@ -141,52 +167,68 @@ public:
 		if (player_pos.y + PLAYER_H > WINDOW_H) player_pos.y = WINDOW_H - PLAYER_H;
 	}
 private:
-	//Íæ¼Ò±àºÅ
+	//ç©å®¶ç¼–å·
 	int code;
-	//´°¿Ú´óĞ¡
+	//çª—å£å¤§å°
 	int WINDOW_W = getwidth();
 	int WINDOW_H = getheight();
-	//Íæ¼ÒÎ»ÖÃ½á¹¹Ìå
+	//ç©å®¶ä½ç½®ç»“æ„ä½“
 	POINT player_pos = { 500 , 500 };
-	//Íæ¼ÒËÙ¶È
+	//ç©å®¶é€Ÿåº¦
 	const int PLAYERSPEED = 5;
-	//Íæ¼ÒµÄÒõÓ°¿í¶È
+	//ç©å®¶çš„é˜´å½±å®½åº¦
 	const int SHADOW_W = 80;
-	//Íæ¼ÒÍ¼ÏñµÄ´óĞ¡
+	//ç©å®¶å›¾åƒçš„å¤§å°
 	const int PLAYER_W = 100;
 	const int PLAYER_H = 100;
 private:
-	//Íæ¼ÒÒõÓ°
+	//ç©å®¶é˜´å½±
 	IMAGE shadow_player;
-	//Íæ¼Ò¶¯»­
+	//ç©å®¶åŠ¨ç”»
 	Animation* img_player_left;
 	Animation* img_player_right;
 	Animation* img_player_stand;
-	//Íæ¼ÒÒÆ¶¯µÄ°´¼üÊÇ·ñ°´ÏÂµÄ±äÁ¿£¬ÓÃÀ´ÓÅ»¯playerÒÆ¶¯
+	//ç©å®¶ç§»åŠ¨çš„æŒ‰é”®æ˜¯å¦æŒ‰ä¸‹çš„å˜é‡ï¼Œç”¨æ¥ä¼˜åŒ–playerç§»åŠ¨
 	bool is_up = false;
 	bool is_down = false;
 	bool is_left = false;
 	bool is_right = false;
 };
-//×Óµ¯Àà
+//å­å¼¹ç±»
 class bullet {
-
+public:
+     bullet() {
+		 loadimage(&bullet_img, _T("img\\bullet.png"));
+	}
+	 const POINT& get_bul_pos() const {
+		return bullet_pos;
+	}
+	 POINT& modify_pos() {
+		 return bullet_pos;
+	 }
+	void DRAW() {
+		putimage_alpha(bullet_pos.x, bullet_pos.y, &bullet_img);
+	}
+private:
+	POINT bullet_pos = { 0 , 0 };
+	IMAGE bullet_img;
 };
-//µĞÈËÀà
+
+//æ•Œäººç±»
 class enemy {
 public:
 	enemy(int n)
 		:code(n)
 	{
-		//¼ÓÔØµĞÈËÒõÓ°
+		//åŠ è½½æ•Œäººé˜´å½±
 		loadimage(&shadow_enemy, _T("img\\shadow_enemy.png"));
-		//¼ÓÔØµĞÈË¶¯»­
+		//åŠ è½½æ•ŒäººåŠ¨ç”»
 		img_enemy = new Animation(5, _T("img\\enemy%d_%d.png"), 83, 1);
-		//Ëæ»úÉú³ÉµĞÈË
+		//éšæœºç”Ÿæˆæ•Œäºº
 		init_enemy();
 	}
 
-	//Ëæ»úÉú³ÉµĞÈËº¯Êı
+	//éšæœºç”Ÿæˆæ•Œäººå‡½æ•°
 	void init_enemy() {
 		enum class Edge {
 			Up,Down,Left,Right
@@ -211,15 +253,21 @@ public:
 			break;
 		}
 	}
-	//Óë×Óµ¯Åö×²º¯Êı
+	//ä¸å­å¼¹ç¢°æ’å‡½æ•°
 	bool touch_bullet(const bullet& bul) {
-		return false;
+		bool overlap_x = bul.get_bul_pos().x >= enemy_pos.x && bul.get_bul_pos().x <= enemy_pos.x + ENEMY_W;
+		bool overlap_y = bul.get_bul_pos().y>= enemy_pos.y && bul.get_bul_pos().y <= enemy_pos.y + ENEMY_H;
+		return overlap_x && overlap_y;
 	}
-	//ÓëÍæ¼ÒÅö×²º¯Êı
+	//ä¸ç©å®¶ç¢°æ’å‡½æ•°
 	bool touch_player(const player& man) {
-		return false;
+		double t_x = enemy_pos.x + ENEMY_W / 2 ;
+		double t_y = enemy_pos.y + ENEMY_H / 2 ;
+		bool overlap_x = t_x >= man.get_x() && t_x <= man.get_x() + man.get_w();
+		bool overlap_y = t_y >= man.get_y() && t_y <= man.get_y() + man.get_h();
+		return overlap_x && overlap_y;
 	}
-	//µĞÈË×Ô¶¯Ë÷µĞ
+	//æ•Œäººè‡ªåŠ¨ç´¢æ•Œ
 	void move(const player& man) {
 		double del_x = man.get_x() - enemy_pos.x;
 		double del_y = man.get_y() - enemy_pos.y;
@@ -230,7 +278,7 @@ public:
 		}
 
 	}
-	//´òÓ¡µĞÈË¶¯»­º¯Êı
+	//æ‰“å°æ•ŒäººåŠ¨ç”»å‡½æ•°
 	void draw() {
 		int pos_shadow_x = enemy_pos.x + (ENEMY_W / 2 - SHADOW_W / 2) - 10;
 		int pos_shadow_y = enemy_pos.y + ENEMY_H - 25;
@@ -238,106 +286,442 @@ public:
 
 		img_enemy->play(enemy_pos.x,enemy_pos.y);
 	}
+	void hurt() {
+		alive = false;
+	}
+	bool is_alive() {
+		return alive;
+	}
+	double& get_speed() {
+		return ENEMYSPEED;
+	}
 	~enemy() {
 		delete img_enemy;
 	}
 private:
-	//µĞÈËÎ»ÖÃ½á¹¹Ìå
+	//æ•Œäººä½ç½®ç»“æ„ä½“
 	POINT enemy_pos{ 0, 0};
-	//µĞÈË±àºÅ
+	//æ•Œäººç¼–å·
 	int code;
-	//´°¿Ú´óĞ¡
+	//çª—å£å¤§å°
 	int WINDOW_W = getwidth();
 	int WINDOW_H = getheight();
-	//µĞÈËËÙ¶È
-	const int ENEMYSPEED = 2;
-	//µĞÈËµÄÒõÓ°¿í¶È
+	//æ•Œäººé€Ÿåº¦
+	double ENEMYSPEED = 2;
+	//æ•Œäººçš„é˜´å½±å®½åº¦
 	const int SHADOW_W = 80;
-	//µĞÈËÍ¼ÏñµÄ´óĞ¡
+	//æ•Œäººå›¾åƒçš„å¤§å°
 	const int ENEMY_W = 100;
 	const int ENEMY_H = 100;
+	//æ•Œäººè¡€é‡ä»¥åŠå­˜æ´»çŠ¶æ€
+	int blood = 0;
+	bool alive = true;
 private:
 	IMAGE shadow_enemy;
 	Animation* img_enemy;
 
 };
+//æŒ‰é”®ç±»
+class button {
+public:
+	button(RECT rect,LPCTSTR path_idle ,LPCTSTR path_hovered,LPCTSTR path_pushed) 
+		:region(rect)
+	{
+		loadimage(&img_idel , path_idle);
+		loadimage(&img_hovered , path_hovered);
+		loadimage(&img_pushed , path_pushed);
+	}
+	//ä¿®æ”¹æŒ‰é”®çŠ¶æ€ä¸ºidle
+	void modify_status_idle() {
+		status = Status::Idle;
+	}
+	//å¤„ç†é¼ æ ‡ä¿¡æ¯
+	void processEvent(const ExMessage& msg) {
+		if (msg.message == WM_MOUSEMOVE) {
+			if (status == Status::Idle && cursor(msg.x, msg.y)) {
+				status = Status::Hovered;
+			}
+			else if (status == Status::Hovered && !cursor(msg.x, msg.y)) {
+				status = Status::Idle;
+			}
+		}
+		else if (msg.message == WM_LBUTTONDOWN) {
+			if (cursor(msg.x, msg.y)) {
+				status = Status::Pushed;
+			}
+		}
+		else if (msg.message == WM_LBUTTONUP) {
+			if (status == Status::Pushed) {
+				OnClick();
+			}
+		}
+	}
+	//ç»˜åˆ¶æŒ‰é”®
+	void draw() {
+		switch (status) {
+		case Status::Idle:
+			putimage(region.left, region.top, &img_idel);
+			break;
+		case Status::Hovered:
+			putimage(region.left, region.top, &img_hovered);
+			break;
+		case Status::Pushed:
+			putimage(region.left, region.top, &img_pushed);
+			break;
+		default:
+			break;
+		}
 
-//Ê¹ÓÃalphaÍ¨µÀµÄputimage,ÓÃÓÚÍ¼ĞÎÓĞÍ¸Ã÷¶ÈĞÅÏ¢
+	}
+	~button() {
+
+	}
+protected:
+	virtual void OnClick() = 0;
+private:
+	enum class Status {
+	Idle = 0,
+	Hovered ,
+	Pushed
+	};
+	//æ£€æµ‹é¼ æ ‡ä½ç½®æ˜¯å¦åœ¨æŒ‰é”®ä¸Š
+	bool cursor(int x, int y) {
+		return x >= region.left && x <= region.right && y >= region.top && y <= region.bottom;
+	}
+private:
+	RECT region;
+	IMAGE img_idel;
+	IMAGE img_hovered;
+	IMAGE img_pushed;
+	Status status = Status::Idle;
+};
+
+//å¼€å§‹æŒ‰é”®
+class start_button :public button {
+public:
+	start_button(RECT rect, LPCTSTR path_idle, LPCTSTR path_hovered, LPCTSTR path_pushed)
+		: button(rect, path_idle, path_hovered, path_pushed) {}
+protected:
+	void OnClick() {
+		m_choice = menu_choice::START;
+		mciSendString(_T("play bgm repeat from 0"), NULL, 0, NULL);
+	}
+};
+//ç»“æŸæŒ‰é”®
+class end_button: public button {
+public:
+	end_button(RECT rect, LPCTSTR path_idle, LPCTSTR path_hovered, LPCTSTR path_pushed)
+		: button(rect, path_idle, path_hovered, path_pushed) {}
+protected:
+	void OnClick() {
+		m_choice = menu_choice::END;
+	}
+};
+//é‡å¯æŒ‰é”®
+class restart_button :public button {
+public:
+	restart_button(RECT rect, LPCTSTR path_idle, LPCTSTR path_hovered, LPCTSTR path_pushed)
+		: button(rect, path_idle, path_hovered, path_pushed) {
+	}
+protected:
+	void OnClick() {
+		m_choice = menu_choice::RESTART;
+	}
+};
+//ä½¿ç”¨alphaé€šé“çš„putimage,ç”¨äºå›¾å½¢æœ‰é€æ˜åº¦ä¿¡æ¯
 inline void putimage_alpha(int x, int y, IMAGE* img) {
 	int w = img->getwidth();
 	int h = img->getheight();
 	AlphaBlend(GetImageHDC(NULL), x, y, w, h,
 		GetImageHDC(img), 0, 0, w, h, { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA });
 }
-//Éú³ÉµĞÈËº¯Êı
+//ç”Ÿæˆæ•Œäººå‡½æ•°
 DWORD init_enemy(std:: vector<enemy*>& enemy_list,DWORD last_t) {
 	DWORD current_t = GetTickCount();
 	DWORD delta = current_t - last_t;
-	if (delta >= 1500) {
+	if (delta >= init_enemy_interval) {
 		enemy_list.push_back(new enemy(1));
 		return current_t;
 	}
 	return last_t;
 }
+//å­å¼¹è¿åŠ¨å‡½æ•°
+void bullet_move(const player& ply, std::vector<bullet>& list) {
+	const double RADIAL_SPEED = 0.0045;	 //å¾„å‘é€Ÿåº¦
+	const double TANGENT_SPEED = 0.0045; //åˆ‡å‘é€Ÿåº¦
+	double interval = 2 * PI / list.size(); //è·å–ä¸€ä¸ªå­å¼¹åŸºç¡€é—´éš”
+	double radius = 100 + 35 * sin(GetTickCount() * RADIAL_SPEED);//å¯å˜çš„åŠå¾„
+	const POINT plyaer_pos = ply.get_pos();
+	for (int i = 0; i < list.size(); i++) {
+		double radian = i * interval + GetTickCount()*TANGENT_SPEED; //è·å¾—å­å¼¹å½“å‰å¯å˜çš„å¼§åº¦
+		list[i].modify_pos().x = ply.get_x() + ply.get_w() / 2 + radius * cos(radian);
+		list[i].modify_pos().y = ply.get_y() + ply.get_h() / 2 + radius * sin(radian);
+	}
+	
+}
+//åˆ†æ•°ç­‰çº§å‡½æ•°
+void laugh(int l_score) {
+	if (l_score <= 50) {
+		outtextxy(10, 30, _T("é£èˆå–µï¼Œè¿˜ä¸åˆ°äº”ååˆ†"));
+	}
+	else if (l_score <= 100) {
+		outtextxy(10, 30, _T("æ‚å£ï¼Œæ‚å£"));
+	}
+	else if (l_score <= 150) {
+		outtextxy(10, 30, _T("è¿˜ç®—æœ‰ç‚¹æ°´å¹³å–µ"));
+	}
+	else if (l_score <= 200) {
+		outtextxy(10, 30, _T("?!å¼ºå¼ºï¼ï¼Ÿï¼ŒæŸšå­å‹‡è€…é‚¹åŠ æ˜Šé‡ç°è£å…‰å–µï¼"));
+	}
+	else {
+		outtextxy(10, 30, _T("è€èµ„å†ï¼Œæˆ‘ç»™ä½ è·ªäº†å–µğŸ˜­"));
+	}
+}
+//èœå•å‡½æ•°
+void main_menu(ExMessage& msg , start_button& btn_start,end_button& btn_end,IMAGE& img_menu) {
+	mciSendString(_T("play menu repeat from 0"), NULL, 0, NULL);
+	BeginBatchDraw();
+	while (true) {
+		DWORD begintime = GetTickCount();
 
-
-//Ö÷º¯Êı
-int main() {
-	srand(time(NULL));
-	//³õÊ¼»¯»æÍ¼´°¿Ú
-	initgraph(1280, 720);
-	//¼ÓÔØ±³¾°Í¼Æ¬
-	IMAGE img_background;
-	loadimage(&img_background,_T("img\\background.png"));
-	//´´½¨Íæ¼Ò1¶ÔÏó
-	player player_1(1);
-	//Íæ¼Ò1ÒÆ¶¯µÄÏûÏ¢
-	ExMessage move_msg_1;
-	//µĞÈËÁĞ±í
-	std::vector<enemy*> enemy_list;
-	//µĞÈËÉú³ÉÊ±¼ä
-	DWORD enemy_t = GetTickCount();
-
-	bool running = true;
-	BeginBatchDraw();  //¿ªÆôÅúÁ¿»æÍ¼
-	while (running) {
-		//ÓÎÏ·Ö÷Ñ­»·
-		DWORD begintime = GetTickCount();  //¿ØÖÆÃ¿ÃëÖ¡Êı
-		
-		//playerÒÆ¶¯ÏûÏ¢´¦Àí
-		player_1.process_msg(move_msg_1);
-		//playerÒÆ¶¯
-		player_1.process_move();
-		//Éú³ÉµĞÈË
-		enemy_t = init_enemy(enemy_list,enemy_t);
-		//ÈÃÃ¿Ò»¸öµĞÈË¿¿½üÍæ¼Ò
-		for (enemy* p : enemy_list) {
-			p->move(player_1);
+		if (peekmessage(&msg)) {
+			btn_start.processEvent(msg);
+			btn_end.processEvent(msg);
 		}
 		cleardevice();
-		//»æÍ¼
-		putimage(0, 0, &img_background); //»æÖÆ±³¾°
-		player_1.player_move_anim();
-		for (enemy* p : enemy_list) {
-			p->draw();
-		}
-		
-		// µ÷ÊÔ£ºÔÚ×óÉÏ½ÇÏÔÊ¾µĞÈËÊıÁ¿£¬È·ÈÏÊÇ·ñ´´½¨³É¹¦
-		TCHAR dbg[64];
-		_stprintf_s(dbg, 64, _T("Enemies: %d"), (int)enemy_list.size());
-		outtextxy(10, 10, dbg);
-
+		//ç»˜å›¾
+		putimage(0, 0, &img_menu);//ç»˜åˆ¶ä¸»èœå•
+		btn_start.draw();
+		btn_end.draw();
 		FlushBatchDraw();
 
-
-
-
+		if (m_choice == menu_choice::START) {
+			is_game_start = true;
+			mciSendString(_T("stop menu"), NULL, 0, NULL);
+			return;
+		}
+		else if (m_choice == menu_choice::END) {
+			is_game_start = false;
+			return;
+		}
 		DWORD endtime = GetTickCount();
 		DWORD deltatime = endtime - begintime;
-		if (deltatime <= 1000 / 60) {
-			Sleep(1000 / 60 - deltatime);
+		if (deltatime <= 1000 / 120) {
+			Sleep(1000 / 120 - deltatime);
 		}
+
 	}
-	EndBatchDraw(); //½áÊøÅúÁ¿»æÍ¼
+	EndBatchDraw();
+	return;
+}
+//ç»“æŸèœå•
+void end_menu(ExMessage& msg, restart_button& btn_restart, end_button& btn_end,IMAGE& img_menu) {
+	mciSendString(_T("stop bgm "), NULL, 0, NULL);
+	mciSendString(_T("play menu repeat from 0"), NULL, 0, NULL);
+	BeginBatchDraw();
+	while (true) {
+		DWORD begintime = GetTickCount();
+
+		if (peekmessage(&msg)) {
+			btn_restart.processEvent(msg);
+			btn_end.processEvent(msg);
+		}
+		cleardevice();
+		//ç»˜å›¾
+		putimage(0, 0, &img_menu);//ç»˜åˆ¶èœå•
+		btn_restart.draw();
+		btn_end.draw();
+		FlushBatchDraw();
+
+		if (m_choice == menu_choice::RESTART) {
+			is_game_start = true;
+			mciSendString(_T("stop menu"), NULL, 0, NULL);
+			return;
+		}
+		else if (m_choice == menu_choice::END) {
+			is_game_start = false;
+			return;
+		}
+		DWORD endtime = GetTickCount();
+		DWORD deltatime = endtime - begintime;
+		if (deltatime <= 1000 / 120) {
+			Sleep(1000 / 120 - deltatime);
+		}
+
+	}
+	EndBatchDraw();
+	return;
+}
+
+//ä¸»å‡½æ•°
+int main() {
+	//åˆå§‹åŒ–ç»˜å›¾çª—å£
+	initgraph(1280, 720);
+	const int WINDOW_WIDTH = getwidth();
+	const int WINDOW_HEIGHT = getheight();
+	//èœå•ç•Œé¢æŒ‰é”®è®¾ç½®
+	RECT region_start, region_end ,region_restart;
+
+	region_start.left = (WINDOW_WIDTH - BUTTON_WIDTH) / 2;
+	region_start.right = region_start.left + BUTTON_WIDTH;
+	region_start.top = 430;
+	region_start.bottom = region_start.top + BUTTON_HEIGHT;
+
+	region_end.left = (WINDOW_WIDTH - BUTTON_WIDTH) / 2;
+	region_end.right = region_end.left + BUTTON_WIDTH;
+	region_end.top = 550;
+	region_end.bottom = region_end.top + BUTTON_HEIGHT;
+
+	region_restart.left = (WINDOW_WIDTH - BUTTON_WIDTH) / 2;
+	region_restart.right = region_restart.left + BUTTON_WIDTH;
+	region_restart.top = 430;
+	region_restart.bottom = region_restart.top + BUTTON_HEIGHT;
+	start_button btn_start(region_start, 
+		_T("img\\ui_start_idle.png"), _T("img\\ui_start_hovered.png"), _T("img\\ui_start_pushed.png"));
+	end_button btn_end(region_end
+		, _T("img\\ui_quit_idle.png"), _T("img\\ui_quit_hovered.png"), _T("img\\ui_quit_pushed.png"));
+	restart_button btn_restart(region_restart,
+		_T("img\\ui_restart_idle.png"), _T("img\\ui_restart_hovered.png"), _T("img\\ui_restart_pushed.png"));
+	//åŠ è½½ä¸»èœå•ç•Œé¢	
+	IMAGE img_menu;
+	loadimage(&img_menu, _T("img\\menu.png"));
+	//åŠ è½½ç»“æŸç•Œé¢
+	IMAGE img_end_menu;
+	loadimage(&img_end_menu, _T("img\\end_menu.png"));
+	//åŠ è½½å¤±è´¥ç•Œé¢
+	IMAGE img_lost_menu;
+	loadimage(&img_lost_menu, _T("img\\lost_menu.png"));
+	//åŠ è½½éŸ³ä¹
+	mciSendString(_T("open mymus\\bgm_battle.mp3 alias bgm"), NULL, 0, NULL);
+	mciSendString(_T("open mymus\\hit.mp3 alias hit"), NULL, 0, NULL);
+	mciSendString(_T("open mus\\bgm.mp3 alias menu"), NULL, 0, NULL);
+	srand(time(NULL));
+	FLAG:
+	bullet_set_num = 1;
+	//åŠ è½½èƒŒæ™¯å›¾ç‰‡
+	IMAGE img_background;
+	loadimage(&img_background,_T("img\\background.png"));
+	//åˆ›å»ºç©å®¶1å¯¹è±¡
+	player player_1(1);
+	//åˆ›å»ºå­å¼¹åˆ—è¡¨
+	std::vector<bullet> bullet_list(bullet_set_num);
+	//ç©å®¶1ç§»åŠ¨çš„æ¶ˆæ¯
+	ExMessage move_msg_1;
+	//èœå•æ¶ˆæ¯
+	ExMessage menu_msg;
+	//æ•Œäººåˆ—è¡¨
+	std::vector<enemy*> enemy_list;
+	//æ•Œäººç”Ÿæˆæ—¶é—´
+	DWORD enemy_t = GetTickCount();
+	//ç©å®¶åˆ†æ•°
+	int score = 0;
+	//ä¸»èœå•é€»è¾‘
+	main_menu(menu_msg,btn_start,btn_end,img_menu);
+	//å¼€å§‹æ¸¸æˆ
+	if (is_game_start) {
+		BeginBatchDraw();  //å¼€å¯æ‰¹é‡ç»˜å›¾
+		while (running) {
+			//æ¸¸æˆä¸»å¾ªç¯
+			DWORD begintime = GetTickCount();  //æ§åˆ¶æ¯ç§’å¸§æ•°
+
+			//playerç§»åŠ¨æ¶ˆæ¯å¤„ç†
+			player_1.process_msg(move_msg_1);
+			//playerç§»åŠ¨
+			player_1.process_move();
+			//å­å¼¹è¿åŠ¨
+			bullet_move(player_1, bullet_list);
+			//ç”Ÿæˆæ•Œäºº
+			enemy_t = init_enemy(enemy_list, enemy_t);
+			//è®©æ¯ä¸€ä¸ªæ•Œäººé è¿‘ç©å®¶
+			for (enemy* p : enemy_list) {
+				p->move(player_1);
+			}
+			//æ£€æµ‹æ•Œäººå’Œç©å®¶ç¢°æ’
+			for (enemy* p : enemy_list) {
+				if (p->touch_player(player_1)) {
+					end_menu(menu_msg,btn_restart,btn_end,img_lost_menu);
+					if (is_game_start) {
+						btn_start.modify_status_idle();
+						btn_restart.modify_status_idle();
+						goto FLAG;
+					}
+					else {
+						goto END;
+					}
+				}
+			}
+			//æ£€æµ‹å­å¼¹å’Œæ•Œäººç¢°æ’
+			for (enemy* e : enemy_list) {
+				for (const bullet& b : bullet_list) {
+					if (e->touch_bullet(b)) {
+						mciSendString(_T("play hit from 400"), NULL, 0, NULL);
+						e->hurt();
+					}
+				}
+			}
+			//å¤„ç†æ­»äº¡æ•Œäºº
+			for (int i = 0; i < enemy_list.size(); i++) {
+				enemy* e = enemy_list[i];
+				if (!e->is_alive()) {
+					score++;
+					std::swap(enemy_list[i], enemy_list.back());
+					enemy_list.pop_back();
+					delete e;
+					//æ¯å‡»æ€ä¸€ä¸ªæ•Œäººå¢åŠ 0.04ç§»é€Ÿ,ä¸Šé™10
+					if (enemy_list[0]->get_speed() <= 10) {
+						for (enemy* e : enemy_list) {
+							e->get_speed() += 0.04;
+						}
+					}
+					if (init_enemy_interval >= 200) {
+						init_enemy_interval -= 5;
+					}
+				}
+			}
+
+			cleardevice();
+			//ç»˜å›¾
+			putimage(0, 0, &img_background); //ç»˜åˆ¶èƒŒæ™¯
+			player_1.player_move_anim();
+			for (enemy* p : enemy_list) {
+				p->draw();
+			}
+			for (bullet& b : bullet_list) {
+				b.DRAW();
+			}
+			//åœ¨å·¦ä¸Šè§’æ˜¾ç¤ºåˆ†æ•°
+			TCHAR show_score[64];
+			_stprintf_s(show_score, 64, _T("ç¡çœ ä¿®å¥³å¼ å“²é“­æé†’æ‚¨åˆ†æ•°å–µ: %d"), score);
+			outtextxy(10, 10, show_score);
+			outtextxy(10, 50, _T("æ¯å‡»æ€æ•Œäººä¼šå¢å¼ºæ•Œäººçš„é€Ÿåº¦å’Œç”Ÿæˆé€Ÿåº¦ï¼Œä½†æ¯å‡»æ€50ä¸ªæ•Œäººä½ ä¼šå‡çº§å–µ"));
+			//åˆ†æ•°ç­‰çº§ç¾è¾±æ¨¡å—
+			laugh(score);
+			FlushBatchDraw();
+			//å­å¼¹æ•°å‡çº§
+			if (bullet_set_num <= 5) {
+				bullet_set_num = 1 + score / 50;
+				bullet_list.resize(bullet_set_num);
+			}
+			//åˆ†æ•°åˆ¤å®š
+			 if (score >= 250) {
+				end_menu(menu_msg,btn_restart,btn_end,img_end_menu);
+				if (is_game_start) {
+					btn_start.modify_status_idle();
+					btn_restart.modify_status_idle();
+					goto FLAG;
+				}
+				else {
+					break;
+				}
+			}
+			DWORD endtime = GetTickCount();
+			DWORD deltatime = endtime - begintime;
+			if (deltatime <= 1000 / 60) {
+				Sleep(1000 / 60 - deltatime);
+			}
+		}
+		EndBatchDraw(); //ç»“æŸæ‰¹é‡ç»˜å›¾
+	}
+END:
 	return 0;
 }

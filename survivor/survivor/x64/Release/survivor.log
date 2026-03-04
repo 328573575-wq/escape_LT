@@ -1,0 +1,12 @@
+﻿  main.cpp
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(43,13): warning C4018: “>=”: 有符号/无符号不匹配
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(161,31): warning C4244: “+=”: 从“double”转换到“LONG”，可能丢失数据
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(162,31): warning C4244: “+=”: 从“double”转换到“LONG”，可能丢失数据
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(457,58): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(458,58): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+E:\Git-Hub\survivor\survivor\survivor\main.cpp(598,12): warning C4244: “参数”: 从“time_t”转换到“unsigned int”，可能丢失数据
+  正在生成代码
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+  All 244 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  survivor.vcxproj -> E:\Git-Hub\survivor\survivor\x64\Release\escape_LT.exe

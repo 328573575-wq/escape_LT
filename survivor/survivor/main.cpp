@@ -643,6 +643,7 @@ int main() {
 					if (is_game_start) {
 						btn_start.modify_status_idle();
 						btn_restart.modify_status_idle();
+						init_enemy_interval = 1200;
 						goto FLAG;
 					}
 					else {
@@ -708,6 +709,7 @@ int main() {
 				if (is_game_start) {
 					btn_start.modify_status_idle();
 					btn_restart.modify_status_idle();
+					init_enemy_interval = 1200;
 					goto FLAG;
 				}
 				else {

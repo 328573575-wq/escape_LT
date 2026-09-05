@@ -6,3 +6,7 @@
 ### 回归现实的勇者哦
 ### 拯救被怪物化的战友吧！
 
+精美的菜单界面
+![menu](readme_images/menu.jpg)
+热血的战斗
+![game](readme_images/game.jpg)
